@@ -6081,8 +6081,6 @@ function onCtEdImg(e){
   var files=Array.from(e.target.files);
   if(!files.length)return;
   files.forEach(function(f){
-    uploadToHost(null,function(url){ctEdImgs.push(url);rCtEdImgs();});
-    // 실제 업로드
     var reader=new FileReader();
     reader.onload=function(){
       uploadToHost(reader.result,function(url){
