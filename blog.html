@@ -1795,7 +1795,20 @@ function defP(){return[
     cov:'',il:[],fi:[]}
 ]}
 
-function ld(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}}
+function ld(k){
+  // uid가 있으면 uid별 키에서 먼저 시도
+  var uid = window._blogOwnerId;
+  if(uid){
+    try{var v=JSON.parse(localStorage.getItem(k+'_'+uid));if(v!==null)return v;}catch(e){}
+  }
+  // 폴백: 기존 키 (마이그레이션 전 데이터)
+  try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}
+}
+
+function lsKey(k){
+  var uid = window._blogOwnerId;
+  return uid ? k+'_'+uid : k;
+}
 
 // Firebase 저장 (로컬에도 병행 저장해서 오프라인에도 동작)
 function sv(){
@@ -1805,12 +1818,12 @@ function sv(){
     return;
   }
   try{
-    localStorage.setItem('e_cfg',JSON.stringify(cfg));
-    localStorage.setItem('e_cats',JSON.stringify(cats));
-    localStorage.setItem('e_ps',JSON.stringify(ps));
-    localStorage.setItem('e_pairs',JSON.stringify(pairs));
-    localStorage.setItem('e_prompts',JSON.stringify(prompts));
-    localStorage.setItem('e_memos',JSON.stringify(memos));
+    localStorage.setItem(lsKey('e_cfg'),JSON.stringify(cfg));
+    localStorage.setItem(lsKey('e_cats'),JSON.stringify(cats));
+    localStorage.setItem(lsKey('e_ps'),JSON.stringify(ps));
+    localStorage.setItem(lsKey('e_pairs'),JSON.stringify(pairs));
+    localStorage.setItem(lsKey('e_prompts'),JSON.stringify(prompts));
+    localStorage.setItem(lsKey('e_memos'),JSON.stringify(memos));
   }catch(e){
     console.warn('localStorage 저장 실패:',e);
     if(e.name==='QuotaExceededError'||e.code===22){
@@ -1948,8 +1961,8 @@ function addRecentColor(type,color){
   arr=arr.filter(function(c){return c.toLowerCase()!==color});
   arr.unshift(color);
   if(arr.length>10)arr=arr.slice(0,10);
-  if(type==='fg'){recentFgColors=arr;localStorage.setItem('e_recentFg',JSON.stringify(arr))}
-  else{recentBgColors=arr;localStorage.setItem('e_recentBg',JSON.stringify(arr))}
+  if(type==='fg'){recentFgColors=arr;localStorage.setItem(lsKey('e_recentFg'),JSON.stringify(arr))}
+  else{recentBgColors=arr;localStorage.setItem(lsKey('e_recentBg'),JSON.stringify(arr))}
   rCPRecent(type);
 }
 
@@ -3060,7 +3073,7 @@ function impD(e){
   };
   r.readAsText(f);e.target.value='';
 }
-function rstAll(){showModal('⚠️','모든 데이터를 초기화하시겠습니까?<div class="modal-sub">글, 시리즈, 설정이 모두 삭제됩니다</div>','초기화',function(){['e_cfg','e_cats','e_ps','e_prompts'].forEach(function(k){localStorage.removeItem(k)});location.reload()},{danger:true})}
+function rstAll(){showModal('⚠️','모든 데이터를 초기화하시겠습니까?<div class="modal-sub">글, 시리즈, 설정이 모두 삭제됩니다</div>','초기화',function(){['e_cfg','e_cats','e_ps','e_prompts','e_pairs','e_memos'].forEach(function(k){localStorage.removeItem(lsKey(k))});location.reload()},{danger:true})}
 
 function lightenColor(hex,amt){
   var h=hex.replace('#','');
@@ -5710,12 +5723,12 @@ function renumberPrompts(type){
 }
 
 function startApp(){
-  if(window._fbCfg){cfg=window._fbCfg;if(!cfg.memoTags||Array.isArray(cfg.memoTags)){var ot=Array.isArray(cfg.memoTags)?cfg.memoTags:[];cfg.memoTags={OOC:ot,'지침':[],'작태':[]};}if(!cfg.memoTags.OOC)cfg.memoTags.OOC=[];if(!cfg.memoTags['지침'])cfg.memoTags['지침']=[];if(!cfg.memoTags['작태'])cfg.memoTags['작태']=[];localStorage.setItem('e_cfg',JSON.stringify(cfg));}
-  if(window._fbCats){cats=window._fbCats;localStorage.setItem('e_cats',JSON.stringify(cats));}
-  if(window._fbPs){ps=window._fbPs;localStorage.setItem('e_ps',JSON.stringify(ps));}
-  if(window._fbPairs){pairs=window._fbPairs;localStorage.setItem('e_pairs',JSON.stringify(pairs));}
-  if(window._fbPrompts){prompts=window._fbPrompts;localStorage.setItem('e_prompts',JSON.stringify(prompts));}
-  if(window._fbMemos){memos=window._fbMemos;localStorage.setItem('e_memos',JSON.stringify(memos));}
+  if(window._fbCfg){cfg=window._fbCfg;if(!cfg.memoTags||Array.isArray(cfg.memoTags)){var ot=Array.isArray(cfg.memoTags)?cfg.memoTags:[];cfg.memoTags={OOC:ot,'지침':[],'작태':[]};}if(!cfg.memoTags.OOC)cfg.memoTags.OOC=[];if(!cfg.memoTags['지침'])cfg.memoTags['지침']=[];if(!cfg.memoTags['작태'])cfg.memoTags['작태']=[];localStorage.setItem(lsKey('e_cfg'),JSON.stringify(cfg));}
+  if(window._fbCats){cats=window._fbCats;localStorage.setItem(lsKey('e_cats'),JSON.stringify(cats));}
+  if(window._fbPs){ps=window._fbPs;localStorage.setItem(lsKey('e_ps'),JSON.stringify(ps));}
+  if(window._fbPairs){pairs=window._fbPairs;localStorage.setItem(lsKey('e_pairs'),JSON.stringify(pairs));}
+  if(window._fbPrompts){prompts=window._fbPrompts;localStorage.setItem(lsKey('e_prompts'),JSON.stringify(prompts));}
+  if(window._fbMemos){memos=window._fbMemos;localStorage.setItem(lsKey('e_memos'),JSON.stringify(memos));}
   applyAcc();applyMeta();initBgm();initHeartPanel();
   var loader=document.getElementById('appLoader');
   if(loader){loader.style.opacity='0';setTimeout(function(){loader.style.display='none'},400);}
