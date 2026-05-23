@@ -3057,7 +3057,21 @@ function impD(e){
   };
   r.readAsText(f);e.target.value='';
 }
-function rstAll(){showModal('⚠️','모든 데이터를 초기화하시겠습니까?<div class="modal-sub">글, 시리즈, 설정이 모두 삭제됩니다</div>','초기화',function(){['e_cfg','e_cats','e_ps','e_prompts','e_pairs','e_memos'].forEach(function(k){localStorage.removeItem(lsKey(k))});location.reload()},{danger:true})}
+function rstAll(){showModal('⚠️','모든 데이터를 초기화하시겠습니까?<div class="modal-sub">글, 시리즈, 설정이 모두 삭제됩니다</div>','초기화',async function(){
+  // localStorage 초기화
+  ['e_cfg','e_cats','e_ps','e_prompts','e_pairs','e_memos'].forEach(function(k){localStorage.removeItem(lsKey(k))});
+  // Firebase 초기화
+  var uid=window._blogOwnerId;
+  if(uid && window._db && window._firestoreFns){
+    var db=window._db,docFn=window._firestoreFns.doc,setDocFn=window._firestoreFns.setDoc;
+    try{
+      await setDocFn(docFn(db,'blogs',uid,'main','data'),{cfg:{name:'Blog',desc:'나만의 기록 공간',ht:'Blog',hd:'나만의 기록 공간',hbg:'',layout:'grid',accent:'#1A1A1A'},cats:[],ps:[],pairs:[],updatedAt:Date.now()});
+      await setDocFn(docFn(db,'blogs',uid,'main','prompts'),{prompts:[],updatedAt:Date.now()});
+      await setDocFn(docFn(db,'blogs',uid,'main','memos'),{memos:[],updatedAt:Date.now()});
+    }catch(e){console.warn('Firebase 초기화 실패:',e);}
+  }
+  location.reload();
+},{danger:true})}
 
 function lightenColor(hex,amt){
   var h=hex.replace('#','');
