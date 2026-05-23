@@ -1504,6 +1504,11 @@ footer{text-align:center;padding:32px;color:var(--text-light);font-size:.68rem;b
       <label>태그</label>
       <div id="ctEdTagsArea" style="display:flex;flex-wrap:wrap;gap:5px;align-items:center"></div>
     </div>
+    <div id="ctEdNsfwWrap" style="display:flex;align-items:center;gap:16px;margin-bottom:16px">
+      <label style="font-size:.78rem;color:var(--text-sub);display:flex;align-items:center;gap:5px;cursor:pointer">
+        <input type="checkbox" id="ctEdNsfw" style="accent-color:#E16B5A"> NSFW
+      </label>
+    </div>
     <div class="pair-modal-btns">
       <button class="btn-g" onclick="closeCtEditor()">취소</button>
       <button class="btn-p" onclick="saveCtItem()">저장</button>
@@ -1568,8 +1573,15 @@ footer{text-align:center;padding:32px;color:var(--text-light);font-size:.68rem;b
     <div class="ef">
       <label>해시태그 사용</label>
       <div class="lo" id="ctmTagSel">
-        <div class="lo-o on" data-tag="0" onclick="selectCtTag(false)"><div>✕</div>사용 안 함</div>
-        <div class="lo-o" data-tag="1" onclick="selectCtTag(true)"><div>✓</div>사용</div>
+        <div class="lo-o on" data-tag="0" onclick="selectCtmTag(false)"><div>✕</div>사용 안 함</div>
+        <div class="lo-o" data-tag="1" onclick="selectCtmTag(true)"><div>✓</div>사용</div>
+      </div>
+    </div>
+    <div class="ef">
+      <label>공개 설정</label>
+      <div class="lo" id="ctmPrivSel">
+        <div class="lo-o on" data-priv="0" onclick="selectCtPriv(false)"><div>🌐</div>공개</div>
+        <div class="lo-o" data-priv="1" onclick="selectCtPriv(true)"><div>🔒</div>비공개</div>
       </div>
     </div>
     <div class="pair-modal-btns">
@@ -5844,7 +5856,8 @@ function renumberPrompts(type){
 // cfg.ctData = { tabId: [{id, title, body, imgs:[], sub:'', tags:[], ts}] }
 
 var ctEditTabId=null, ctEditItemId=null, ctCurSub={}, ctCurTag={}, ctCurPage={};
-var ctManageEditId=null, ctmLayout='card', ctmUseSub=false, ctmUseTag=false, ctmSubs=[];
+var ctNsfwState={}; // 0=전체, 1=NSFW만, 2=NSFW숨김
+var ctManageEditId=null, ctmLayout='card', ctmUseSub=false, ctmUseTag=false, ctmSubs=[], ctmPrivate=false;
 var ctEdImgs=[];
 
 function getCtTabs(){return cfg.customTabs||[];}
@@ -5854,9 +5867,10 @@ function getCtData(tabId){if(!cfg.ctData)cfg.ctData={};if(!cfg.ctData[tabId])cfg
 function rCustomTabNav(){
   var wrap=$('#customTabLinks');
   if(!wrap)return;
-  var tabs=getCtTabs();
+  var tabs=getCtTabs().filter(function(t){return !t.private||isAdmin;});
   wrap.innerHTML=tabs.map(function(t){
-    return '<button class="n-link" data-p="ct_'+t.id+'" onclick="go(\'ct_'+t.id+'\')">'+esc(t.name)+'</button>';
+    var lockIcon=t.private?' <span style="font-size:.6rem;opacity:.4">🔒</span>':'';
+    return '<button class="n-link" data-p="ct_'+t.id+'" onclick="go(\'ct_'+t.id+'\')">'+esc(t.name)+lockIcon+'</button>';
   }).join('');
 }
 
@@ -5875,7 +5889,10 @@ function ensureCtPages(){
           '<span style="font-size:.82rem;font-weight:600;letter-spacing:.03em;text-transform:uppercase">'+esc(t.name)+'</span>'+
           (t.useSub?'<div class="prompt-tabs" id="ctSubs_'+t.id+'"></div>':'')+
         '</div>'+
-        (isAdmin?'<button class="n-wr" onclick="openCtEditor(\''+t.id+'\')">+ 추가</button>':'')+
+        '<div style="display:flex;align-items:center;gap:6px">'+
+          '<button class="prompt-nsfw" id="ctNsfwBtn_'+t.id+'" onclick="cycleCtNsfw(\''+t.id+'\')">NSFW</button>'+
+          (isAdmin?'<button class="n-wr" onclick="openCtEditor(\''+t.id+'\')">+ 추가</button>':'')+
+        '</div>'+
       '</div>'+
       (t.useTag?'<div class="persona-tags" id="ctTags_'+t.id+'"></div>':'')+
       '<div id="ctGrid_'+t.id+'" class="'+(t.layout==='card'?'prompt-grid':'memo-grid')+'"></div>'+
@@ -5906,6 +5923,14 @@ function rCustomTab(tabId){
   // 태그 렌더
   if(tab.useTag) rCtTags(tabId,tab);
 
+  // NSFW 필터
+  var nsfwState=ctNsfwState[tabId]||0; // 0=전체, 1=NSFW만, 2=NSFW숨김
+  // NSFW 버튼 상태 업데이트
+  var nsfwBtn=$('#ctNsfwBtn_'+tabId);
+  if(nsfwBtn){
+    nsfwBtn.className='prompt-nsfw'+(nsfwState===1?' only':'')+(nsfwState===2?' hide':'');
+  }
+
   // 데이터 필터
   var items=getCtData(tabId).slice();
   if(tab.useSub&&ctCurSub[tabId]){
@@ -5914,6 +5939,9 @@ function rCustomTab(tabId){
   if(tab.useTag&&ctCurTag[tabId]){
     items=items.filter(function(x){return Array.isArray(x.tags)&&x.tags.indexOf(ctCurTag[tabId])!==-1;});
   }
+  // NSFW 필터 적용
+  if(nsfwState===1)items=items.filter(function(x){return !!x.nsfw;});
+  if(nsfwState===2)items=items.filter(function(x){return !x.nsfw;});
   items.sort(function(a,b){return(b.ts||0)-(a.ts||0);});
 
   var grid=$('#ctGrid_'+tabId);
@@ -5938,8 +5966,11 @@ function rCustomTab(tabId){
     grid.className='prompt-grid';
     grid.innerHTML=paged.map(function(item){
       var img=item.imgs&&item.imgs[0]||'';
+      var isNsfw=!!item.nsfw;
+      var blurStyle=isNsfw&&nsfwState===0?' style="filter:blur(8px);transform:scale(1.1)"':'';
       return '<div class="pmt-card" onclick="openCtDetail(\''+tabId+'\',\''+item.id+'\')" oncontextmenu="copyCtItemRC(event,\''+tabId+'\',\''+item.id+'\')">'
-        +(img?'<img src="'+img+'" loading="lazy">':
+        +(isNsfw?'<div class="pmt-card-nsfw">NSFW</div>':'')
+        +(img?'<img src="'+img+'" loading="lazy"'+blurStyle+'>':
           '<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:1.5rem;opacity:.12">✦</div>')
         +'<div class="pmt-card-dim"></div>'
         +'<div class="pmt-card-body"><div class="pmt-card-title">'+esc(item.title||'')+'</div></div>'
@@ -6119,7 +6150,10 @@ function openCtEditor(tabId,itemId){
       $('#ctEdBody').value=item.body||'';
       ctEdImgs=(item.imgs||[]).slice();
       rCtEdImgs();
+      $('#ctEdNsfw').checked=!!item.nsfw;
     }
+  }else{
+    $('#ctEdNsfw').checked=false;
   }
 
   // 태그 영역
@@ -6191,12 +6225,15 @@ function saveCtItem(){
   var items=getCtData(ctEditTabId);
   var tab=getCtTabs().find(function(t){return t.id===ctEditTabId;});
 
+  var isNsfw=$('#ctEdNsfw').checked;
+
   if(ctEditItemId){
     var item=items.find(function(x){return x.id===ctEditItemId;});
     if(item){
       item.title=title;
       item.body=body;
       item.imgs=ctEdImgs.slice();
+      item.nsfw=isNsfw;
       if(tab&&tab.useTag)item.tags=ctEdSelTags.slice();
       item.ts=Date.now();
     }
@@ -6205,6 +6242,7 @@ function saveCtItem(){
       id:'ci_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),
       title:title,body:body,
       imgs:ctEdImgs.slice(),
+      nsfw:isNsfw,
       ts:Date.now()
     };
     if(tab&&tab.useSub)newItem.sub=ctCurSub[ctEditTabId]||tab.subs&&tab.subs[0]||'';
@@ -6232,7 +6270,7 @@ function deleteCtItem(tabId,itemId){
 // ── 탭 관리 모달 ──
 function openCtManage(editId){
   ctManageEditId=editId||null;
-  ctmLayout='card';ctmUseSub=false;ctmUseTag=false;ctmSubs=[];
+  ctmLayout='card';ctmUseSub=false;ctmUseTag=false;ctmSubs=[];ctmPrivate=false;
   if(editId){
     var tab=getCtTabs().find(function(t){return t.id===editId;});
     if(tab){
@@ -6240,6 +6278,7 @@ function openCtManage(editId){
       ctmLayout=tab.layout||'card';
       ctmUseSub=!!tab.useSub;
       ctmUseTag=!!tab.useTag;
+      ctmPrivate=!!tab.private;
       ctmSubs=(tab.subs||[]).slice();
       $('#ctManageTitle').textContent='탭 수정';
     }
@@ -6256,12 +6295,14 @@ function updateCtmUI(){
   $$('#ctmLayoutSel .lo-o').forEach(function(o){o.classList.toggle('on',o.dataset.lay===ctmLayout);});
   $$('#ctmSubSel .lo-o').forEach(function(o){o.classList.toggle('on',(o.dataset.sub==='1')===ctmUseSub);});
   $$('#ctmTagSel .lo-o').forEach(function(o){o.classList.toggle('on',(o.dataset.tag==='1')===ctmUseTag);});
+  $$('#ctmPrivSel .lo-o').forEach(function(o){o.classList.toggle('on',(o.dataset.priv==='1')===ctmPrivate);});
   $('#ctmSubListWrap').style.display=ctmUseSub?'':'none';
   rCtmSubList();
 }
 function selectCtLayout(v){ctmLayout=v;updateCtmUI();}
 function selectCtSub(v){ctmUseSub=v;updateCtmUI();}
-function selectCtTag(v){ctmUseTag=v;updateCtmUI();}
+function selectCtmTag(v){ctmUseTag=v;updateCtmUI();}
+function selectCtPriv(v){ctmPrivate=v;updateCtmUI();}
 function rCtmSubList(){
   $('#ctmSubList').innerHTML=ctmSubs.map(function(s,i){
     return '<span style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;font-size:.74rem;background:var(--accent-soft);color:var(--text)">'+esc(s)+
@@ -6286,11 +6327,11 @@ function saveCtTab(){
   if(ctManageEditId){
     var tab=cfg.customTabs.find(function(t){return t.id===ctManageEditId;});
     if(tab){
-      tab.name=name;tab.layout=ctmLayout;tab.useSub=ctmUseSub;tab.useTag=ctmUseTag;tab.subs=ctmSubs.slice();
+      tab.name=name;tab.layout=ctmLayout;tab.useSub=ctmUseSub;tab.useTag=ctmUseTag;tab.subs=ctmSubs.slice();tab.private=ctmPrivate;
     }
   }else{
     var id='ct_'+Date.now();
-    cfg.customTabs.push({id:id,name:name,layout:ctmLayout,useSub:ctmUseSub,useTag:ctmUseTag,subs:ctmSubs.slice(),tags:[]});
+    cfg.customTabs.push({id:id,name:name,layout:ctmLayout,useSub:ctmUseSub,useTag:ctmUseTag,subs:ctmSubs.slice(),tags:[],private:ctmPrivate});
     cfg.ctData[id]=[];
   }
   sv();closeCtManage();
@@ -6318,6 +6359,7 @@ function rCtAdminList(){
     info.push(t.layout==='card'?'카드형':'메모형');
     if(t.useSub)info.push('서브탭 '+((t.subs||[]).length)+'개');
     if(t.useTag)info.push('해시태그');
+    if(t.private)info.push('🔒 비공개');
     return '<div class="cr"><div class="cr-d" style="background:var(--text)"></div>'+
       '<span class="cr-n">'+esc(t.name)+'</span>'+
       '<span class="cr-c">'+info.join(' · ')+'</span>'+
@@ -6328,6 +6370,15 @@ function rCtAdminList(){
 }
 
 // ── 초기화 ──
+// ── NSFW 필터 토글 ──
+function cycleCtNsfw(tabId){
+  var s=ctNsfwState[tabId]||0;
+  s=(s+1)%3;
+  ctNsfwState[tabId]=s;
+  ctCurPage[tabId]=1;
+  rCustomTab(tabId);
+}
+
 // ── 우클릭 복사 ──
 function copyCtItemRC(e,tabId,itemId){
   e.preventDefault();
