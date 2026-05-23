@@ -995,11 +995,7 @@ footer{text-align:center;padding:32px;color:var(--text-light);font-size:.68rem;b
   <div class="n-r">
     <button class="n-ic" onclick="toggleTheme()" id="tB">◐</button>
     <div class="fab-wrap" id="fabWrap" style="display:none">
-      <button class="n-wr fab-main" onclick="toggleFab()" id="fabBtn">+</button>
-      <div class="fab-menu" id="fabMenu">
-        <button onclick="closeFab();edId=null;edFromCatView();go('editor')">✎ 게시글</button>
-        <span id="fabCustomItems"></span>
-      </div>
+      <button class="n-wr fab-main" onclick="edId=null;edFromCatView();go('editor')" id="fabBtn">+</button>
     </div>
 
   </div>
@@ -2909,7 +2905,8 @@ function saveP(){
 
 function sharePost(){
   if(!curId)return;
-  var shareUrl=location.origin+location.pathname+'?post='+curId;
+  var uid=window._blogOwnerId||'';
+  var shareUrl=location.origin+location.pathname+'?id='+encodeURIComponent(uid)+'&post='+curId;
   navigator.clipboard.writeText(shareUrl).then(function(){toast('링크 복사됨')}).catch(function(){toast('직접 복사해주세요')});
 }
 function toggleDtMenu(){var d=$('#dtMenuDrop');d.classList.toggle('open');if(d.classList.contains('open')){setTimeout(function(){document.addEventListener('click',closeDtMenuOutside,{once:true})},0)}}
@@ -5909,12 +5906,11 @@ function rCustomTab(tabId){
     grid.className='prompt-grid';
     grid.innerHTML=paged.map(function(item){
       var img=item.imgs&&item.imgs[0]||'';
-      return '<div class="pmt-card" onclick="openCtDetail(\''+tabId+'\',\''+item.id+'\')" oncontextmenu="copyCtItemRC(event,\''+tabId+'\',\''+item.id+'\')">'+
+      return '<div class="pmt-card" onclick="openCtDetail(\''+tabId+'\',\''+item.id+'\')">'+
         (img?'<img src="'+img+'" style="width:100%;height:100%;object-fit:cover">':
           '<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:1.5rem;opacity:.12">✦</div>')+
-        '<div class="pmt-card-dim"></div>'+
-        '<div class="pmt-card-body">'+
-          '<div class="pmt-card-title">'+esc(item.title||'')+'</div>'+
+        '<div style="position:absolute;bottom:0;left:0;right:0;padding:10px 12px;background:linear-gradient(transparent,rgba(0,0,0,.6))">'+
+          '<div style="font-size:.76rem;font-weight:500;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(item.title||'')+'</div>'+
         '</div>'+
       '</div>';
     }).join('');
@@ -5928,7 +5924,7 @@ function rCustomTab(tabId){
           return tag?'<span class="memo-card-tag">'+esc(tag.name)+'</span>':'';
         }).filter(Boolean).join('');
       }
-      return '<div class="memo-card" onclick="openCtDetail(\''+tabId+'\',\''+item.id+'\')" oncontextmenu="copyCtItemRC(event,\''+tabId+'\',\''+item.id+'\')">'+
+      return '<div class="memo-card" onclick="openCtDetail(\''+tabId+'\',\''+item.id+'\')">'+
         '<div class="memo-card-title">'+esc(item.title||'(제목 없음)')+'</div>'+
         '<div class="memo-card-body">'+esc(item.body||'')+'</div>'+
         '<div class="memo-card-foot">'+
@@ -6073,6 +6069,8 @@ function onCtEdImg(e){
   var files=Array.from(e.target.files);
   if(!files.length)return;
   files.forEach(function(f){
+    uploadToHost(null,function(url){ctEdImgs.push(url);rCtEdImgs();});
+    // 실제 업로드
     var reader=new FileReader();
     reader.onload=function(){
       uploadToHost(reader.result,function(url){
@@ -6233,30 +6231,10 @@ function rCtAdminList(){
 }
 
 // ── 초기화 ──
-// ── 우클릭 복사 ──
-function copyCtItemRC(e,tabId,itemId){
-  e.preventDefault();
-  var items=getCtData(tabId);
-  var item=items.find(function(x){return x.id===itemId;});
-  if(!item)return;
-  var text=item.body||'';
-  if(!text){toast('내용이 비어있어요');return;}
-  if(navigator.clipboard){
-    navigator.clipboard.writeText(text).then(function(){toast('복사됨');}).catch(function(){fallbackCopy(text);});
-  }else{fallbackCopy(text);}
-}
-
 function initCustomTabs(){
   rCustomTabNav();
   ensureCtPages();
   rCtAdminList();
-  // FAB 메뉴에 커스텀 탭 추가 버튼
-  var fabItems=$('#fabCustomItems');
-  if(fabItems){
-    fabItems.innerHTML=getCtTabs().map(function(t){
-      return '<button onclick="closeFab();openCtEditor(\''+t.id+'\')">✎ '+esc(t.name)+'</button>';
-    }).join('');
-  }
 }
 
 function startApp(){
@@ -6291,7 +6269,7 @@ function startApp(){
     localStorage.setItem(lsKey('e_memos'),JSON.stringify(memos));
   }catch(e){}
 
-  applyAcc();applyMeta();initBgm();initHeartPanel();initCustomTabs();
+  applyAcc();applyMeta();initBgm();initHeartPanel();
   var loader=document.getElementById('appLoader');
   if(loader){loader.style.opacity='0';setTimeout(function(){loader.style.display='none'},400);}
   // Firebase Auth로 본인 블로그이면 자동 관리자 모드
@@ -6300,6 +6278,8 @@ function startApp(){
   } else {
     setAdmin(false);
   }
+  // 커스텀 탭 초기화 (setAdmin 이후에 해야 + 추가 버튼이 보임)
+  initCustomTabs();
   var urlParams=new URLSearchParams(window.location.search);
   var postId=urlParams.get('post');
   if(postId){
