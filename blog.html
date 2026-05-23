@@ -1508,7 +1508,7 @@ footer{text-align:center;padding:32px;color:var(--text-light);font-size:.68rem;b
   <div class="pair-modal" style="max-width:560px;max-height:85vh;overflow-y:auto">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
       <h3 id="ctDetailTitle" style="font-size:.95rem;font-weight:600"></h3>
-      <div style="display:flex;gap:4px" id="ctDetailActions"></div>
+      <div id="ctDetailActions" style="position:relative"></div>
     </div>
     <div id="ctDetailImgs" style="margin-bottom:12px"></div>
     <div id="ctDetailBody" style="font-size:.88rem;line-height:1.9;white-space:pre-wrap;color:var(--text)"></div>
@@ -1526,7 +1526,7 @@ footer{text-align:center;padding:32px;color:var(--text-light);font-size:.68rem;b
       <label>레이아웃</label>
       <div class="lo" id="ctmLayoutSel">
         <div class="lo-o on" data-lay="card" onclick="selectCtLayout('card')"><div>▦</div>카드형</div>
-        <div class="lo-o" data-lay="list" onclick="selectCtLayout('list')"><div>☰</div>목록형</div>
+        <div class="lo-o" data-lay="list" onclick="selectCtLayout('list')"><div>☰</div>메모형</div>
       </div>
     </div>
     <div class="ef">
@@ -5995,12 +5995,24 @@ function openCtDetail(tabId,itemId){
   $('#ctDetailDate').textContent=item.ts?fDateOnly(item.ts):'';
   var acts=$('#ctDetailActions');
   if(isAdmin){
-    acts.innerHTML='<button class="btn-g" style="padding:5px 12px;font-size:.76rem" onclick="editCtItem(\''+tabId+'\',\''+itemId+'\')">수정</button>'+
-      '<button class="btn-g" style="padding:5px 12px;font-size:.76rem;color:#D4564A" onclick="deleteCtItem(\''+tabId+'\',\''+itemId+'\')">삭제</button>';
+    acts.innerHTML='<div class="dt-menu-wrap">'
+      +'<button class="dt-menu-btn" onclick="event.stopPropagation();toggleCtDetailMenu()" title="메뉴">⋯</button>'
+      +'<div class="dt-menu-drop" id="ctDetailMenuDrop">'
+        +'<button onclick="closeCtDetailMenu();editCtItem(\''+tabId+'\',\''+itemId+'\')">수정</button>'
+        +'<button class="danger" onclick="closeCtDetailMenu();deleteCtItem(\''+tabId+'\',\''+itemId+'\')">삭제</button>'
+      +'</div>'
+    +'</div>';
   }else{acts.innerHTML='';}
   $('#ctDetailDim').style.display='flex';
 }
-function closeCtDetail(){$('#ctDetailDim').style.display='none';}
+function closeCtDetail(){$('#ctDetailDim').style.display='none';closeCtDetailMenu();}
+function toggleCtDetailMenu(){
+  var d=$('#ctDetailMenuDrop');if(!d)return;
+  d.classList.toggle('open');
+  if(d.classList.contains('open')){setTimeout(function(){document.addEventListener('click',closeCtDetailMenuOutside,{once:true})},0);}
+}
+function closeCtDetailMenu(){var d=$('#ctDetailMenuDrop');if(d)d.classList.remove('open');}
+function closeCtDetailMenuOutside(e){var b=document.querySelector('#ctDetailActions .dt-menu-btn');if(!b||!b.contains(e.target))closeCtDetailMenu();}
 function openImgLightbox(src){$('#lightboxImg').src=src;$('#imgLightbox').style.display='flex';}
 
 // ── 에디터 ──
@@ -6219,7 +6231,7 @@ function rCtAdminList(){
   if(!tabs.length){wrap.innerHTML='<div style="font-size:.8rem;color:var(--text-light);padding:8px 0">추가된 탭이 없어요</div>';return;}
   wrap.innerHTML=tabs.map(function(t){
     var info=[];
-    info.push(t.layout==='card'?'카드형':'목록형');
+    info.push(t.layout==='card'?'카드형':'메모형');
     if(t.useSub)info.push('서브탭 '+((t.subs||[]).length)+'개');
     if(t.useTag)info.push('해시태그');
     return '<div class="cr"><div class="cr-d" style="background:var(--text)"></div>'+
