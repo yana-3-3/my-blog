@@ -1740,33 +1740,17 @@ const IK_PRIVATE_KEY='private_VcS/eetSjbJYSGr69OgHz0LDyL0=';
 const IK_URL_ENDPOINT='https://ik.imagekit.io/yana33';
 const IK_UPLOAD_URL='https://upload.imagekit.io/api/v1/files/upload';
 
-let recentFgColors=ld('e_recentFg')||[];
-let recentBgColors=ld('e_recentBg')||[];
+let recentFgColors=[];
+let recentBgColors=[];
 
-// 일단 로컬/기본값으로만 초기화 — Firebase 데이터는 startApp()에서 덮어씀
-let cfg=ld('e_cfg')||{name:'Blog',desc:'나만의 기록 공간',ht:'Blog',hd:'나만의 기록 공간',hbg:'',layout:'grid',accent:'#1A1A1A'};
-let cats=ld('e_cats')||[
-  {id:'dev',name:'개발 노트',desc:'코딩하면서 배운 것들',thumb:'',color:'#3A85B5'},
-  {id:'daily',name:'일상 기록',desc:'소소한 하루의 기록',thumb:'',color:'#3D8B5E'},
-  {id:'read',name:'독서 로그',desc:'읽은 책에 대한 감상',thumb:'',color:'#D99A2B'},
-  {id:'review',name:'감상문',desc:'영화, 음악, 전시 리뷰',thumb:'',color:'#7B61C4'}
-];
-let ps=ld('e_ps')||defP();
+// 빈 기본값으로 초기화 — 실제 데이터는 startApp()에서 Firebase or localStorage로 채워짐
+let cfg={name:'Blog',desc:'나만의 기록 공간',ht:'Blog',hd:'나만의 기록 공간',hbg:'',layout:'grid',accent:'#1A1A1A'};
+let cats=[];
+let ps=[];
 let curId=null,edId=null,prev='home',vm='grid',fc='all',viewCatId=null,catSortAsc=false,catPage=0;
-let pairs=ld('e_pairs')||[];
-let prompts=ld('e_prompts')||[];
-let memos=ld('e_memos')||[];
-// cfg.memoTags 보강 - 서브탭별 객체 구조 {OOC:[], 지침:[], 작태:[]}
-if(!cfg.memoTags || Array.isArray(cfg.memoTags)){
-  // 이전 평면 배열을 OOC로 마이그레이션 (또는 빈 객체)
-  var oldTags = Array.isArray(cfg.memoTags) ? cfg.memoTags : [];
-  cfg.memoTags = {OOC: oldTags, '지침': [], '작태': []};
-}
-if(!cfg.memoTags.OOC) cfg.memoTags.OOC = [];
-if(!cfg.memoTags['지침']) cfg.memoTags['지침'] = [];
-if(!cfg.memoTags['작태']) cfg.memoTags['작태'] = [];
-// 기존 메모에 sub 필드가 없으면 'OOC'로 마이그레이션
-memos.forEach(function(m){if(!m.sub)m.sub='OOC';});
+let pairs=[];
+let prompts=[];
+let memos=[];
 let curMemoSub='OOC'; // 현재 서브탭
 let curMemoTag=null; // 메모 필터 태그 (서브탭 안에서)
 let memoPage=1;
@@ -5723,20 +5707,45 @@ function renumberPrompts(type){
 }
 
 function startApp(){
-  if(window._fbCfg){cfg=window._fbCfg;if(!cfg.memoTags||Array.isArray(cfg.memoTags)){var ot=Array.isArray(cfg.memoTags)?cfg.memoTags:[];cfg.memoTags={OOC:ot,'지침':[],'작태':[]};}if(!cfg.memoTags.OOC)cfg.memoTags.OOC=[];if(!cfg.memoTags['지침'])cfg.memoTags['지침']=[];if(!cfg.memoTags['작태'])cfg.memoTags['작태']=[];localStorage.setItem(lsKey('e_cfg'),JSON.stringify(cfg));}
-  if(window._fbCats){cats=window._fbCats;localStorage.setItem(lsKey('e_cats'),JSON.stringify(cats));}
-  if(window._fbPs){ps=window._fbPs;localStorage.setItem(lsKey('e_ps'),JSON.stringify(ps));}
-  if(window._fbPairs){pairs=window._fbPairs;localStorage.setItem(lsKey('e_pairs'),JSON.stringify(pairs));}
-  if(window._fbPrompts){prompts=window._fbPrompts;localStorage.setItem(lsKey('e_prompts'),JSON.stringify(prompts));}
-  if(window._fbMemos){memos=window._fbMemos;localStorage.setItem(lsKey('e_memos'),JSON.stringify(memos));}
+  // 1) Firebase 데이터가 있으면 사용, 없으면 uid별 localStorage, 그것도 없으면 빈 기본값
+  var defCfg={name:'Blog',desc:'나만의 기록 공간',ht:'Blog',hd:'나만의 기록 공간',hbg:'',layout:'grid',accent:'#1A1A1A'};
+
+  cfg = window._fbCfg || ld('e_cfg') || defCfg;
+  cats = window._fbCats || ld('e_cats') || [];
+  ps = window._fbPs || ld('e_ps') || [];
+  pairs = window._fbPairs || ld('e_pairs') || [];
+  prompts = window._fbPrompts || ld('e_prompts') || [];
+  memos = window._fbMemos || ld('e_memos') || [];
+
+  // memoTags 보강
+  if(!cfg.memoTags||Array.isArray(cfg.memoTags)){var ot=Array.isArray(cfg.memoTags)?cfg.memoTags:[];cfg.memoTags={OOC:ot,'지침':[],'작태':[]};}
+  if(!cfg.memoTags.OOC)cfg.memoTags.OOC=[];
+  if(!cfg.memoTags['지침'])cfg.memoTags['지침']=[];
+  if(!cfg.memoTags['작태'])cfg.memoTags['작태']=[];
+  memos.forEach(function(m){if(!m.sub)m.sub='OOC';});
+
+  // 색상 캐시 로드
+  recentFgColors = ld('e_recentFg') || [];
+  recentBgColors = ld('e_recentBg') || [];
+
+  // uid별 localStorage에 캐시
+  try{
+    localStorage.setItem(lsKey('e_cfg'),JSON.stringify(cfg));
+    localStorage.setItem(lsKey('e_cats'),JSON.stringify(cats));
+    localStorage.setItem(lsKey('e_ps'),JSON.stringify(ps));
+    localStorage.setItem(lsKey('e_pairs'),JSON.stringify(pairs));
+    localStorage.setItem(lsKey('e_prompts'),JSON.stringify(prompts));
+    localStorage.setItem(lsKey('e_memos'),JSON.stringify(memos));
+  }catch(e){}
+
   applyAcc();applyMeta();initBgm();initHeartPanel();
   var loader=document.getElementById('appLoader');
   if(loader){loader.style.opacity='0';setTimeout(function(){loader.style.display='none'},400);}
   // Firebase Auth로 본인 블로그이면 자동 관리자 모드
   if(window._isOwner){
     setAdmin(true);
-  } else if(localStorage.getItem('e_admin')==='1' && window._isOwner) {
-    setAdmin(true);
+  } else {
+    setAdmin(false);
   }
   var urlParams=new URLSearchParams(window.location.search);
   var postId=urlParams.get('post');
