@@ -339,47 +339,12 @@ footer{text-align:center;padding:32px;color:var(--text-light);font-size:.68rem;b
   }
 
   // ─── Migrate legacy data ───
-  // 기존 blog/data에 있는 유다 님의 데이터를 새 경로로 마이그레이션
+  // 레거시 마이그레이션 비활성화됨
+  // 유다 님의 기존 데이터는 이미 마이그레이션 완료된 상태
+  // 새 유저에게 레거시 데이터가 복사되는 문제가 있어 제거
   async function migrateLegacyIfNeeded(user){
-    const legacyRef = doc(db, 'blog', 'data');
-    const newMainRef = doc(db, 'blogs', user.uid, 'main', 'data');
-
-    try {
-      const newSnap = await getDoc(newMainRef);
-      if(newSnap.exists()) return; // 이미 마이그레이션됨
-
-      const legSnap = await getDoc(legacyRef);
-      if(!legSnap.exists()) return; // 레거시 데이터 없음
-
-      const legData = legSnap.data();
-      await setDoc(newMainRef, legData);
-
-      // 프롬프트 마이그레이션
-      const legPRef = doc(db, 'blog', 'prompts');
-      const legPSnap = await getDoc(legPRef);
-      if(legPSnap.exists()){
-        await setDoc(doc(db, 'blogs', user.uid, 'main', 'prompts'), legPSnap.data());
-      }
-
-      // 메모 마이그레이션
-      const legMRef = doc(db, 'blog', 'memos');
-      const legMSnap = await getDoc(legMRef);
-      if(legMSnap.exists()){
-        await setDoc(doc(db, 'blogs', user.uid, 'main', 'memos'), legMSnap.data());
-      }
-
-      // 관리자 비밀번호 마이그레이션
-      const legARef = doc(db, 'blog', 'admin');
-      const legASnap = await getDoc(legARef);
-      if(legASnap.exists()){
-        await setDoc(doc(db, 'blogs', user.uid, 'main', 'admin'), legASnap.data());
-      }
-
-      console.log('레거시 데이터 마이그레이션 완료');
-      toast('기존 블로그 데이터를 가져왔어요!');
-    } catch(e){
-      console.warn('마이그레이션 실패:', e);
-    }
+    // 아무것도 하지 않음
+    return;
   }
 
   // ─── Render dashboard ───
