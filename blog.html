@@ -944,10 +944,12 @@ footer{text-align:center;padding:32px;color:var(--text-light);font-size:.68rem;b
 
   // Firestore에서 uid 기반 데이터 로드
   async function loadFromFirestore(uid) {
+    window._fbHasData = false; // Firestore에 데이터가 있었는지 플래그
     try {
       // blogs/{uid}/main/data 에서 로드
       const snap = await getDoc(doc(db, 'blogs', uid, 'main', 'data'));
       if (snap.exists()) {
+        window._fbHasData = true;
         const data = snap.data();
         if (data.cfg) window._fbCfg = data.cfg;
         if (data.cats) window._fbCats = data.cats;
@@ -955,7 +957,6 @@ footer{text-align:center;padding:32px;color:var(--text-light);font-size:.68rem;b
         if (data.pairs) window._fbPairs = data.pairs;
         if (data.prompts) window._fbPrompts = data.prompts;
       }
-      // 새 유저는 여기서 데이터가 없으면 빈 블로그로 시작됨
 
       // 프롬프트 별도 문서
       const pSnap = await getDoc(doc(db, 'blogs', uid, 'main', 'prompts'));
@@ -971,7 +972,7 @@ footer{text-align:center;padding:32px;color:var(--text-light);font-size:.68rem;b
         if (mData.memos) window._fbMemos = mData.memos;
       }
     } catch(e) {
-      console.warn('Firebase 로드 실패, 로컬 데이터 사용:', e);
+      console.warn('Firebase 로드 실패:', e);
     }
     // 로드 완료 후 앱 초기화
     window._fbReady = true;
@@ -6279,15 +6280,25 @@ function initCustomTabs(){
 }
 
 function startApp(){
-  // 1) Firebase 데이터가 있으면 사용, 없으면 uid별 localStorage, 그것도 없으면 빈 기본값
   var defCfg={name:'Blog',desc:'나만의 기록 공간',ht:'Blog',hd:'나만의 기록 공간',hbg:'',layout:'grid',accent:'#1A1A1A'};
 
-  cfg = window._fbCfg || ld('e_cfg') || defCfg;
-  cats = window._fbCats || ld('e_cats') || [];
-  ps = window._fbPs || ld('e_ps') || [];
-  pairs = window._fbPairs || ld('e_pairs') || [];
-  prompts = window._fbPrompts || ld('e_prompts') || [];
-  memos = window._fbMemos || ld('e_memos') || [];
+  // Firestore에 이 유저의 데이터가 있었으면 Firebase → localStorage 순으로 로드
+  // 없었으면 무조건 빈 기본값 (localStorage 캐시도 무시 — 다른 유저 데이터 오염 방지)
+  if(window._fbHasData){
+    cfg = window._fbCfg || ld('e_cfg') || defCfg;
+    cats = window._fbCats || ld('e_cats') || [];
+    ps = window._fbPs || ld('e_ps') || [];
+    pairs = window._fbPairs || ld('e_pairs') || [];
+    prompts = window._fbPrompts || ld('e_prompts') || [];
+    memos = window._fbMemos || ld('e_memos') || [];
+  } else {
+    cfg = window._fbCfg || defCfg;
+    cats = window._fbCats || [];
+    ps = window._fbPs || [];
+    pairs = window._fbPairs || [];
+    prompts = window._fbPrompts || [];
+    memos = window._fbMemos || [];
+  }
 
   // memoTags 보강
   if(!cfg.memoTags||Array.isArray(cfg.memoTags)){var ot=Array.isArray(cfg.memoTags)?cfg.memoTags:[];cfg.memoTags={OOC:ot,'지침':[],'작태':[]};}
