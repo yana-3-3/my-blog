@@ -365,19 +365,13 @@ footer{text-align:center;padding:32px;color:var(--text-light);font-size:.68rem;b
       currentUser = user;
       updateNav();
 
-      // Ensure blog doc + migrate
+      // Ensure blog doc exists
       await ensureUserBlog(user);
       await migrateLegacyIfNeeded(user);
 
-      // Check URL params
-      const params = new URLSearchParams(location.search);
-      if(params.get('page') === 'explore'){
-        showPage('explore');
-        loadExplore();
-      } else {
-        showPage('dash');
-        renderDash();
-      }
+      // 로그인되면 바로 본인 블로그로 이동
+      const blogUrl = getBlogUrl(user.uid);
+      location.href = blogUrl;
     } else {
       currentUser = null;
       updateNav();
