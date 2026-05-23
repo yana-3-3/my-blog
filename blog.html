@@ -1512,16 +1512,32 @@ footer{text-align:center;padding:32px;color:var(--text-light);font-size:.68rem;b
 </div>
 
 <!-- CUSTOM TAB DETAIL MODAL -->
-<div class="pair-modal-dim" id="ctDetailDim" onclick="if(event.target===this)closeCtDetail()">
-  <div class="pair-modal" style="max-width:560px;max-height:85vh;overflow-y:auto">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-      <h3 id="ctDetailTitle" style="font-size:.95rem;font-weight:600"></h3>
-      <div id="ctDetailActions" style="position:relative"></div>
+<div class="pmt-modal-dim" id="ctDetailDim" onclick="if(event.target===this)closeCtDetail()">
+  <div class="pmt-modal" style="position:relative;max-width:520px">
+    <button class="pmt-modal-close" onclick="closeCtDetail()">✕</button>
+    <!-- 이미지 영역 (카드형일 때만 표시) -->
+    <div id="ctDetailImgWrap" class="pmt-modal-img-wrap" style="display:none">
+      <img id="ctDetailMainImg">
+      <button class="pmt-modal-arrow left" id="ctArrowL" onclick="ctSlide(-1)" style="display:none"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button>
+      <button class="pmt-modal-arrow right" id="ctArrowR" onclick="ctSlide(1)" style="display:none"><svg viewBox="0 0 24 24"><polyline points="9 6 15 12 9 18"/></svg></button>
+      <div class="pmt-modal-dots" id="ctDots"></div>
     </div>
-    <div id="ctDetailImgs" style="margin-bottom:12px"></div>
-    <div id="ctDetailBody" style="font-size:.88rem;line-height:1.9;white-space:pre-wrap;color:var(--text)"></div>
-    <div id="ctDetailTags" style="margin-top:12px;display:flex;flex-wrap:wrap;gap:5px"></div>
-    <div id="ctDetailDate" style="margin-top:12px;font-size:.7rem;color:var(--text-light)"></div>
+    <div class="pmt-modal-content">
+      <!-- 서브탭 뱃지 (메모형일 때) -->
+      <div id="ctDetailSub" class="memo-detail-sub" style="display:none"></div>
+      <div class="pmt-modal-title" id="ctDetailTitle"></div>
+      <div class="pmt-modal-date" id="ctDetailDate"></div>
+      <!-- 태그 -->
+      <div id="ctDetailTags" class="memo-detail-tags" style="display:none"></div>
+      <!-- 본문 -->
+      <div class="pmt-modal-prompt" id="ctDetailBody"></div>
+      <!-- 관리 버튼 -->
+      <div class="pmt-modal-admin" id="ctDetailAdmin" style="display:none">
+        <button onclick="copyCtDetailBody()">복사</button>
+        <button onclick="editCtFromDetail()">수정</button>
+        <button class="danger" onclick="deleteCtFromDetail()">삭제</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -5992,45 +6008,97 @@ function addCtTag(tabId){
 }
 
 // ── 상세 보기 ──
+var ctDetailTabId=null, ctDetailItemId=null;
+var ctSlideIdx=0, ctSlideImgs=[];
+
 function openCtDetail(tabId,itemId){
   var items=getCtData(tabId);
   var item=items.find(function(x){return x.id===itemId;});
   if(!item)return;
   var tab=getCtTabs().find(function(t){return t.id===tabId;});
+  ctDetailTabId=tabId;
+  ctDetailItemId=itemId;
+
+  // 제목, 날짜
   $('#ctDetailTitle').textContent=item.title||'';
-  $('#ctDetailBody').textContent=item.body||'';
-  var imgsDiv=$('#ctDetailImgs');
-  imgsDiv.innerHTML=(item.imgs||[]).map(function(src){
-    return '<img src="'+src+'" style="width:100%;border-radius:var(--radius);margin-bottom:8px;cursor:pointer" onclick="openImgLightbox(\''+src+'\')">';
-  }).join('');
+  $('#ctDetailDate').textContent=item.ts?fDateOnly(item.ts):'';
+
+  // 서브탭 뱃지 (메모형에서 서브탭이 있을 때)
+  var subEl=$('#ctDetailSub');
+  if(tab&&tab.useSub&&item.sub){
+    subEl.textContent=item.sub;
+    subEl.style.display='';
+  }else{subEl.style.display='none';}
+
+  // 이미지 (카드형)
+  var imgWrap=$('#ctDetailImgWrap');
+  ctSlideImgs=item.imgs||[];
+  ctSlideIdx=0;
+  if(ctSlideImgs.length>0){
+    imgWrap.style.display='';
+    $('#ctDetailMainImg').src=ctSlideImgs[0];
+    $('#ctArrowL').style.display=ctSlideImgs.length>1?'':'none';
+    $('#ctArrowR').style.display=ctSlideImgs.length>1?'':'none';
+    rCtDots();
+  }else{
+    imgWrap.style.display='none';
+  }
+
+  // 태그
   var tagsDiv=$('#ctDetailTags');
   if(tab&&tab.useTag&&item.tags&&item.tags.length){
+    tagsDiv.style.display='';
     tagsDiv.innerHTML=item.tags.map(function(tid){
       var t=(tab.tags||[]).find(function(x){return x.id===tid;});
-      return t?'<span class="memo-card-tag">'+esc(t.name)+'</span>':'';
+      return t?'<span class="memo-detail-tag">'+esc(t.name)+'</span>':'';
     }).filter(Boolean).join('');
-  }else{tagsDiv.innerHTML='';}
-  $('#ctDetailDate').textContent=item.ts?fDateOnly(item.ts):'';
-  var acts=$('#ctDetailActions');
-  if(isAdmin){
-    acts.innerHTML='<div class="dt-menu-wrap">'
-      +'<button class="dt-menu-btn" onclick="event.stopPropagation();toggleCtDetailMenu()" title="메뉴">⋯</button>'
-      +'<div class="dt-menu-drop" id="ctDetailMenuDrop">'
-        +'<button onclick="closeCtDetailMenu();editCtItem(\''+tabId+'\',\''+itemId+'\')">수정</button>'
-        +'<button class="danger" onclick="closeCtDetailMenu();deleteCtItem(\''+tabId+'\',\''+itemId+'\')">삭제</button>'
-      +'</div>'
-    +'</div>';
-  }else{acts.innerHTML='';}
-  $('#ctDetailDim').style.display='flex';
+  }else{tagsDiv.style.display='none';tagsDiv.innerHTML='';}
+
+  // 본문
+  $('#ctDetailBody').textContent=item.body||'';
+
+  // 관리 버튼
+  var admin=$('#ctDetailAdmin');
+  if(isAdmin){admin.style.display='';}else{admin.style.display='none';}
+
+  // 모달 열기
+  $('#ctDetailDim').classList.add('on');
 }
-function closeCtDetail(){$('#ctDetailDim').style.display='none';closeCtDetailMenu();}
-function toggleCtDetailMenu(){
-  var d=$('#ctDetailMenuDrop');if(!d)return;
-  d.classList.toggle('open');
-  if(d.classList.contains('open')){setTimeout(function(){document.addEventListener('click',closeCtDetailMenuOutside,{once:true})},0);}
+
+function closeCtDetail(){$('#ctDetailDim').classList.remove('on');}
+
+function ctSlide(dir){
+  if(!ctSlideImgs.length)return;
+  ctSlideIdx+=dir;
+  if(ctSlideIdx<0)ctSlideIdx=ctSlideImgs.length-1;
+  if(ctSlideIdx>=ctSlideImgs.length)ctSlideIdx=0;
+  $('#ctDetailMainImg').src=ctSlideImgs[ctSlideIdx];
+  rCtDots();
 }
-function closeCtDetailMenu(){var d=$('#ctDetailMenuDrop');if(d)d.classList.remove('open');}
-function closeCtDetailMenuOutside(e){var b=document.querySelector('#ctDetailActions .dt-menu-btn');if(!b||!b.contains(e.target))closeCtDetailMenu();}
+function rCtDots(){
+  var dots=$('#ctDots');
+  if(!dots)return;
+  if(ctSlideImgs.length<=1){dots.innerHTML='';return;}
+  dots.innerHTML=ctSlideImgs.map(function(_,i){
+    return '<span class="'+(i===ctSlideIdx?'on':'')+'"></span>';
+  }).join('');
+}
+
+function copyCtDetailBody(){
+  var text=$('#ctDetailBody').textContent||'';
+  if(!text){toast('내용이 비어있어요');return;}
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(text).then(function(){toast('복사됨');}).catch(function(){fallbackCopy(text);});
+  }else{fallbackCopy(text);}
+}
+function editCtFromDetail(){
+  closeCtDetail();
+  openCtEditor(ctDetailTabId,ctDetailItemId);
+}
+function deleteCtFromDetail(){
+  deleteCtItem(ctDetailTabId,ctDetailItemId);
+}
+
 function openImgLightbox(src){$('#lightboxImg').src=src;$('#imgLightbox').style.display='flex';}
 
 // ── 에디터 ──
