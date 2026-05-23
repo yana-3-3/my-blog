@@ -995,11 +995,7 @@ footer{text-align:center;padding:32px;color:var(--text-light);font-size:.68rem;b
   <div class="n-r">
     <button class="n-ic" onclick="toggleTheme()" id="tB">◐</button>
     <div class="fab-wrap" id="fabWrap" style="display:none">
-      <button class="n-wr fab-main" onclick="toggleFab()" id="fabBtn">+</button>
-      <div class="fab-menu" id="fabMenu">
-        <button onclick="closeFab();edId=null;edFromCatView();go('editor')">✎ 게시글</button>
-        <span id="fabCustomItems"></span>
-      </div>
+      <button class="n-wr fab-main" onclick="edId=null;edFromCatView();go('editor')" id="fabBtn">+</button>
     </div>
 
   </div>
@@ -2907,7 +2903,8 @@ function saveP(){
 
 function sharePost(){
   if(!curId)return;
-  var shareUrl=location.origin+location.pathname+'?post='+curId;
+  var uid=window._blogOwnerId||'';
+  var shareUrl=location.origin+location.pathname+'?id='+encodeURIComponent(uid)+'&post='+curId;
   navigator.clipboard.writeText(shareUrl).then(function(){toast('링크 복사됨')}).catch(function(){toast('직접 복사해주세요')});
 }
 function toggleDtMenu(){var d=$('#dtMenuDrop');d.classList.toggle('open');if(d.classList.contains('open')){setTimeout(function(){document.addEventListener('click',closeDtMenuOutside,{once:true})},0)}}
@@ -6240,13 +6237,6 @@ function initCustomTabs(){
   rCustomTabNav();
   ensureCtPages();
   rCtAdminList();
-  // FAB 메뉴에 커스텀 탭 추가 버튼
-  var fabItems=$('#fabCustomItems');
-  if(fabItems){
-    fabItems.innerHTML=getCtTabs().map(function(t){
-      return '<button onclick="closeFab();openCtEditor(\''+t.id+'\')">✎ '+esc(t.name)+'</button>';
-    }).join('');
-  }
 }
 
 function startApp(){
