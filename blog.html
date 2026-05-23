@@ -943,7 +943,7 @@ footer{text-align:center;padding:32px;color:var(--text-light);font-size:.68rem;b
   // Firestore에서 uid 기반 데이터 로드
   async function loadFromFirestore(uid) {
     try {
-      // 새 경로에서 먼저 시도
+      // blogs/{uid}/main/data 에서 로드
       const snap = await getDoc(doc(db, 'blogs', uid, 'main', 'data'));
       if (snap.exists()) {
         const data = snap.data();
@@ -952,30 +952,14 @@ footer{text-align:center;padding:32px;color:var(--text-light);font-size:.68rem;b
         if (data.ps) window._fbPs = data.ps;
         if (data.pairs) window._fbPairs = data.pairs;
         if (data.prompts) window._fbPrompts = data.prompts;
-      } else {
-        // 새 경로에 데이터가 없으면 레거시 경로 시도 (마이그레이션 전 상태)
-        const legSnap = await getDoc(doc(db, 'blog', 'data'));
-        if (legSnap.exists()) {
-          const data = legSnap.data();
-          if (data.cfg) window._fbCfg = data.cfg;
-          if (data.cats) window._fbCats = data.cats;
-          if (data.ps) window._fbPs = data.ps;
-          if (data.pairs) window._fbPairs = data.pairs;
-          if (data.prompts) window._fbPrompts = data.prompts;
-        }
       }
+      // 새 유저는 여기서 데이터가 없으면 빈 블로그로 시작됨
 
       // 프롬프트 별도 문서
       const pSnap = await getDoc(doc(db, 'blogs', uid, 'main', 'prompts'));
       if (pSnap.exists()) {
         const pData = pSnap.data();
         if (pData.prompts) window._fbPrompts = pData.prompts;
-      } else {
-        const legPSnap = await getDoc(doc(db, 'blog', 'prompts'));
-        if (legPSnap.exists()) {
-          const pData = legPSnap.data();
-          if (pData.prompts) window._fbPrompts = pData.prompts;
-        }
       }
 
       // 메모 별도 문서
@@ -983,12 +967,6 @@ footer{text-align:center;padding:32px;color:var(--text-light);font-size:.68rem;b
       if (mSnap.exists()) {
         const mData = mSnap.data();
         if (mData.memos) window._fbMemos = mData.memos;
-      } else {
-        const legMSnap = await getDoc(doc(db, 'blog', 'memos'));
-        if (legMSnap.exists()) {
-          const mData = legMSnap.data();
-          if (mData.memos) window._fbMemos = mData.memos;
-        }
       }
     } catch(e) {
       console.warn('Firebase 로드 실패, 로컬 데이터 사용:', e);
