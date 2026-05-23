@@ -1780,13 +1780,12 @@ function defP(){return[
 ]}
 
 function ld(k){
-  // uid가 있으면 uid별 키에서 먼저 시도
+  // uid별 키에서만 읽기 — 없으면 null
   var uid = window._blogOwnerId;
   if(uid){
     try{var v=JSON.parse(localStorage.getItem(k+'_'+uid));if(v!==null)return v;}catch(e){}
   }
-  // 폴백: 기존 키 (마이그레이션 전 데이터)
-  try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}
+  return null;
 }
 
 function lsKey(k){
