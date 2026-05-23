@@ -5904,13 +5904,12 @@ function rCustomTab(tabId){
     grid.className='prompt-grid';
     grid.innerHTML=paged.map(function(item){
       var img=item.imgs&&item.imgs[0]||'';
-      return '<div class="pmt-card" onclick="openCtDetail(\''+tabId+'\',\''+item.id+'\')">'+
-        (img?'<img src="'+img+'" style="width:100%;height:100%;object-fit:cover">':
-          '<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:1.5rem;opacity:.12">✦</div>')+
-        '<div style="position:absolute;bottom:0;left:0;right:0;padding:10px 12px;background:linear-gradient(transparent,rgba(0,0,0,.6))">'+
-          '<div style="font-size:.76rem;font-weight:500;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(item.title||'')+'</div>'+
-        '</div>'+
-      '</div>';
+      return '<div class="pmt-card" onclick="openCtDetail(\''+tabId+'\',\''+item.id+'\')" oncontextmenu="copyCtItemRC(event,\''+tabId+'\',\''+item.id+'\')">'
+        +(img?'<img src="'+img+'" loading="lazy">':
+          '<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:1.5rem;opacity:.12">✦</div>')
+        +'<div class="pmt-card-dim"></div>'
+        +'<div class="pmt-card-body"><div class="pmt-card-title">'+esc(item.title||'')+'</div></div>'
+        +'</div>';
     }).join('');
   } else {
     grid.className='memo-grid';
@@ -5922,7 +5921,7 @@ function rCustomTab(tabId){
           return tag?'<span class="memo-card-tag">'+esc(tag.name)+'</span>':'';
         }).filter(Boolean).join('');
       }
-      return '<div class="memo-card" onclick="openCtDetail(\''+tabId+'\',\''+item.id+'\')">'+
+      return '<div class="memo-card" onclick="openCtDetail(\''+tabId+'\',\''+item.id+'\')" oncontextmenu="copyCtItemRC(event,\''+tabId+'\',\''+item.id+'\')">'+
         '<div class="memo-card-title">'+esc(item.title||'(제목 없음)')+'</div>'+
         '<div class="memo-card-body">'+esc(item.body||'')+'</div>'+
         '<div class="memo-card-foot">'+
@@ -6233,6 +6232,19 @@ function rCtAdminList(){
 }
 
 // ── 초기화 ──
+// ── 우클릭 복사 ──
+function copyCtItemRC(e,tabId,itemId){
+  e.preventDefault();
+  var items=getCtData(tabId);
+  var item=items.find(function(x){return x.id===itemId;});
+  if(!item)return;
+  var text=item.body||'';
+  if(!text){toast('내용이 비어있어요');return;}
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(text).then(function(){toast('복사됨');}).catch(function(){fallbackCopy(text);});
+  }else{fallbackCopy(text);}
+}
+
 function initCustomTabs(){
   rCustomTabNav();
   ensureCtPages();
