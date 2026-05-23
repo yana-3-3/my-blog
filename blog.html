@@ -995,7 +995,11 @@ footer{text-align:center;padding:32px;color:var(--text-light);font-size:.68rem;b
   <div class="n-r">
     <button class="n-ic" onclick="toggleTheme()" id="tB">◐</button>
     <div class="fab-wrap" id="fabWrap" style="display:none">
-      <button class="n-wr fab-main" onclick="edId=null;edFromCatView();go('editor')" id="fabBtn">+</button>
+      <button class="n-wr fab-main" onclick="toggleFab()" id="fabBtn">+</button>
+      <div class="fab-menu" id="fabMenu">
+        <button onclick="closeFab();edId=null;edFromCatView();go('editor')">✎ 게시글</button>
+        <span id="fabCustomItems"></span>
+      </div>
     </div>
 
   </div>
@@ -1480,27 +1484,25 @@ footer{text-align:center;padding:32px;color:var(--text-light);font-size:.68rem;b
 <div id="customTabPages"></div>
 
 <!-- CUSTOM TAB EDITOR -->
-<div class="page" id="pg-ct-editor">
-  <div class="pw" style="max-width:700px">
-    <div class="ed-c">
-      <button class="dt-back" onclick="goBackFromCtEditor()" style="margin-bottom:20px">← 돌아가기</button>
-      <h2 id="ctEdTitle">항목 작성</h2>
-      <div class="ef"><label>제목</label><input type="text" id="ctEdName" placeholder="제목을 입력하세요"></div>
-      <div class="ef" id="ctEdImgWrap">
-        <label>이미지 <span style="font-weight:300;color:var(--text-light);font-size:.68rem">(선택)</span></label>
-        <div class="uz" onclick="document.getElementById('ctEdImgIn').click()">클릭하여 업로드</div>
-        <input type="file" id="ctEdImgIn" accept="image/*" onchange="onCtEdImg(event)" style="display:none">
-        <div class="ths" id="ctEdImgPv"></div>
-      </div>
-      <div class="ef"><label>내용</label><textarea id="ctEdBody" rows="6" placeholder="내용을 입력하세요" style="min-height:150px"></textarea></div>
-      <div class="ef" id="ctEdTagsWrap" style="display:none">
-        <label>태그</label>
-        <div id="ctEdTagsArea" style="display:flex;flex-wrap:wrap;gap:5px;align-items:center"></div>
-      </div>
-      <div class="ed-b">
-        <button class="btn-g" onclick="goBackFromCtEditor()">취소</button>
-        <button class="btn-p" onclick="saveCtItem()">저장</button>
-      </div>
+<!-- CUSTOM TAB ITEM ADD/EDIT MODAL -->
+<div class="pair-modal-dim" id="ctEditorDim" onclick="if(event.target===this)closeCtEditor()">
+  <div class="pair-modal" style="max-width:480px;max-height:85vh;overflow-y:auto">
+    <h3 id="ctEdTitle">항목 작성</h3>
+    <div class="ef"><label>제목</label><input type="text" id="ctEdName" placeholder="제목을 입력하세요"></div>
+    <div class="ef" id="ctEdImgWrap">
+      <label>이미지 <span style="font-weight:300;color:var(--text-light);font-size:.68rem">(선택)</span></label>
+      <div class="uz" onclick="document.getElementById('ctEdImgIn').click()">클릭하여 업로드</div>
+      <input type="file" id="ctEdImgIn" accept="image/*" onchange="onCtEdImg(event)" style="display:none">
+      <div class="ths" id="ctEdImgPv"></div>
+    </div>
+    <div class="ef"><label>내용</label><textarea id="ctEdBody" rows="6" placeholder="내용을 입력하세요" style="min-height:150px"></textarea></div>
+    <div class="ef" id="ctEdTagsWrap" style="display:none">
+      <label>태그</label>
+      <div id="ctEdTagsArea" style="display:flex;flex-wrap:wrap;gap:5px;align-items:center"></div>
+    </div>
+    <div class="pair-modal-btns">
+      <button class="btn-g" onclick="closeCtEditor()">취소</button>
+      <button class="btn-p" onclick="saveCtItem()">저장</button>
     </div>
   </div>
 </div>
@@ -1927,7 +1929,7 @@ function applyAcc(){
 applyAcc();
 
 function go(p){
-  if(!isAdmin && (p==='admin'||p==='editor'||p==='memo'||p==='ct-editor')){
+  if(!isAdmin && (p==='admin'||p==='editor'||p==='memo')){
     toast('블로그 주인만 사용할 수 있어요');return;
   }
   $$('.page').forEach(function(x){x.classList.remove('on')});
@@ -2905,8 +2907,7 @@ function saveP(){
 
 function sharePost(){
   if(!curId)return;
-  var uid=window._blogOwnerId||'';
-  var shareUrl=location.origin+location.pathname+'?id='+encodeURIComponent(uid)+'&post='+curId;
+  var shareUrl=location.origin+location.pathname+'?post='+curId;
   navigator.clipboard.writeText(shareUrl).then(function(){toast('링크 복사됨')}).catch(function(){toast('직접 복사해주세요')});
 }
 function toggleDtMenu(){var d=$('#dtMenuDrop');d.classList.toggle('open');if(d.classList.contains('open')){setTimeout(function(){document.addEventListener('click',closeDtMenuOutside,{once:true})},0)}}
@@ -6037,11 +6038,14 @@ function openCtEditor(tabId,itemId){
   // 이미지 영역 - 카드형이면 보이기
   $('#ctEdImgWrap').style.display=(tab&&tab.layout==='card')?'':'none';
 
-  go('ct-editor');
+  // 모달 열기
+  $('#ctEditorDim').style.display='flex';
+}
+function closeCtEditor(){
+  $('#ctEditorDim').style.display='none';
 }
 function goBackFromCtEditor(){
-  if(ctEditTabId)go('ct_'+ctEditTabId);
-  else go('home');
+  closeCtEditor();
 }
 
 var ctEdSelTags=[];
@@ -6116,7 +6120,8 @@ function saveCtItem(){
     items.unshift(newItem);
   }
   sv();
-  go('ct_'+ctEditTabId);
+  closeCtEditor();
+  rCustomTab(ctEditTabId);
   toast('저장됨');
 }
 
@@ -6235,6 +6240,13 @@ function initCustomTabs(){
   rCustomTabNav();
   ensureCtPages();
   rCtAdminList();
+  // FAB 메뉴에 커스텀 탭 추가 버튼
+  var fabItems=$('#fabCustomItems');
+  if(fabItems){
+    fabItems.innerHTML=getCtTabs().map(function(t){
+      return '<button onclick="closeFab();openCtEditor(\''+t.id+'\')">✎ '+esc(t.name)+'</button>';
+    }).join('');
+  }
 }
 
 function startApp(){
@@ -6269,7 +6281,7 @@ function startApp(){
     localStorage.setItem(lsKey('e_memos'),JSON.stringify(memos));
   }catch(e){}
 
-  applyAcc();applyMeta();initBgm();initHeartPanel();
+  applyAcc();applyMeta();initBgm();initHeartPanel();initCustomTabs();
   var loader=document.getElementById('appLoader');
   if(loader){loader.style.opacity='0';setTimeout(function(){loader.style.display='none'},400);}
   // Firebase Auth로 본인 블로그이면 자동 관리자 모드
@@ -6278,8 +6290,6 @@ function startApp(){
   } else {
     setAdmin(false);
   }
-  // 커스텀 탭 초기화 (setAdmin 이후에 해야 + 추가 버튼이 보임)
-  initCustomTabs();
   var urlParams=new URLSearchParams(window.location.search);
   var postId=urlParams.get('post');
   if(postId){
