@@ -3468,7 +3468,7 @@ function rPair(){
   }
   $('#pairEmpty').style.display='none';
   // 페이지네이션 (6개 기준)
-  var perPage=6;
+  var perPage=8;
   var totalPages=Math.ceil(pairs.length/perPage);
   if(pairPage>=totalPages)pairPage=totalPages-1;
   if(pairPage<0)pairPage=0;
@@ -3498,7 +3498,7 @@ function rPair(){
     html+='</div></div>';
     return html;
   }).join('');
-  // 그리드 높이 고정 (6개 기준)
+  // 그리드 높이 고정 (8개 기준)
   setTimeout(function(){
     var cards=grid.querySelectorAll('.pair-card');
     if(cards.length){
