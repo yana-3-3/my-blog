@@ -848,7 +848,7 @@ details[open] .fold-summary::before{transform:rotate(90deg)}
 /* ── Prompt Detail Modal ── */
 .pmt-modal-dim{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:900;justify-content:center;align-items:flex-start;padding:40px 20px;overflow-y:auto}
 .pmt-modal-dim.on{display:flex}
-.pmt-modal{background:var(--card);border-radius:14px;width:90%;max-width:min(520px,42vh);max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2);animation:fin .2s ease;margin:auto}
+.pmt-modal{background:var(--card);border-radius:14px;width:min(90%,min(520px,42vh));max-width:520px;box-shadow:0 20px 60px rgba(0,0,0,.2);animation:fin .2s ease;margin:auto}
 .pmt-modal::-webkit-scrollbar{width:4px}.pmt-modal::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
 .pmt-modal-img-wrap{position:relative;width:100%;aspect-ratio:2/3;border-radius:14px 14px 0 0;overflow:hidden}
 .pmt-modal-img-wrap img{width:100%;height:100%;object-fit:cover;display:block}
@@ -5154,7 +5154,9 @@ function openMemoDetail(id){
   document.body.style.overflow='hidden';
 }
 function closeMemoDetail(){
-  $('#memoDetailDim').classList.remove('on');
+  var dim=$('#memoDetailDim');
+  dim.classList.remove('on');
+  dim.scrollTop=0;
   document.body.style.overflow='';
   memoDetailId=null;
 }
@@ -6255,7 +6257,7 @@ function openCtDetail(tabId,itemId){
   $('#ctDetailDim').classList.add('on');
 }
 
-function closeCtDetail(){$('#ctDetailDim').classList.remove('on');}
+function closeCtDetail(){var dim=$('#ctDetailDim');dim.classList.remove('on');dim.scrollTop=0;}
 
 function ctSlide(dir){
   if(!ctSlideImgs.length)return;
