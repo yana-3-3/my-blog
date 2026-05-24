@@ -848,9 +848,9 @@ details[open] .fold-summary::before{transform:rotate(90deg)}
 /* ── Prompt Detail Modal ── */
 .pmt-modal-dim{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:900;justify-content:center;align-items:flex-start;padding:40px 20px;overflow-y:auto}
 .pmt-modal-dim.on{display:flex}
-.pmt-modal{background:var(--card);border-radius:14px;width:90%;max-width:520px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2);animation:fin .2s ease;margin:auto}
+.pmt-modal{background:var(--card);border-radius:14px;width:90%;max-width:min(520px,42vh);max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2);animation:fin .2s ease;margin:auto}
 .pmt-modal::-webkit-scrollbar{width:4px}.pmt-modal::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
-.pmt-modal-img-wrap{position:relative;width:100%;aspect-ratio:2/3;max-height:50vh;border-radius:14px 14px 0 0;overflow:hidden}
+.pmt-modal-img-wrap{position:relative;width:100%;aspect-ratio:2/3;border-radius:14px 14px 0 0;overflow:hidden}
 .pmt-modal-img-wrap img{width:100%;height:100%;object-fit:cover;display:block}
 .pmt-modal-arrow{position:absolute;top:50%;transform:translateY(-50%);width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.45);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:3;transition:background .2s}
 .pmt-modal-arrow:hover{background:rgba(255,255,255,.7)}
