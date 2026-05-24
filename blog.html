@@ -5970,7 +5970,7 @@ function rCustomTabNav(){
   if(!wrap)return;
   var tabs=getCtTabs().filter(function(t){return !t.private||isAdmin;});
   wrap.innerHTML=tabs.map(function(t){
-    var lockIcon=t.private?' <span style="font-size:.6rem;opacity:.4">🔒</span>':'';
+    var lockIcon='';
     return '<button class="n-link" data-p="ct_'+t.id+'" onclick="go(\'ct_'+t.id+'\')">'+esc(t.name)+lockIcon+'</button>';
   }).join('');
 }
@@ -6535,7 +6535,7 @@ function rCtAdminList(){
     info.push(t.layout==='card'?'카드형':'메모형');
     if(t.useSub)info.push('서브탭 '+((t.subs||[]).length)+'개');
     if(t.useTag)info.push('해시태그');
-    if(t.private)info.push('🔒 비공개');
+    if(t.private)info.push('비공개');
     return '<div class="cr"><div class="cr-d" style="background:var(--text)"></div>'+
       '<span class="cr-n">'+esc(t.name)+'</span>'+
       '<span class="cr-c">'+info.join(' · ')+'</span>'+
