@@ -848,9 +848,9 @@ details[open] .fold-summary::before{transform:rotate(90deg)}
 /* ── Prompt Detail Modal ── */
 .pmt-modal-dim{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:900;justify-content:center;align-items:center;padding:20px;overflow:hidden}
 .pmt-modal-dim.on{display:flex}
-.pmt-modal{background:var(--card);border-radius:14px;width:520px;max-width:90vw;max-height:90vh;box-shadow:0 20px 60px rgba(0,0,0,.2);animation:fin .2s ease;margin:auto;display:flex;flex-direction:column}
+.pmt-modal{background:var(--card);border-radius:14px;width:520px;box-shadow:0 20px 60px rgba(0,0,0,.2);animation:fin .2s ease;margin:auto}
 .pmt-modal::-webkit-scrollbar{width:4px}.pmt-modal::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
-.pmt-modal-img-wrap{position:relative;width:100%;aspect-ratio:2/3;border-radius:14px 14px 0 0;overflow:hidden;flex-shrink:1;min-height:0}
+.pmt-modal-img-wrap{position:relative;width:100%;aspect-ratio:2/3;border-radius:14px 14px 0 0;overflow:hidden}
 .pmt-modal-img-wrap img{width:100%;height:100%;object-fit:cover;display:block}
 .pmt-modal-arrow{position:absolute;top:50%;transform:translateY(-50%);width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.45);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:3;transition:background .2s}
 .pmt-modal-arrow:hover{background:rgba(255,255,255,.7)}
@@ -860,7 +860,7 @@ details[open] .fold-summary::before{transform:rotate(90deg)}
 .pmt-modal-dots{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);display:flex;gap:5px;z-index:3}
 .pmt-modal-dots span{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.4);transition:all .2s}
 .pmt-modal-dots span.on{background:#fff;transform:scale(1.2)}
-.pmt-modal-content{padding:24px;overflow-y:auto;flex-shrink:1}
+.pmt-modal-content{padding:24px}
 .pmt-modal-title{font-size:1.05rem;font-weight:600;margin-bottom:4px}
 .pmt-modal-date{font-size:.72rem;color:var(--text-light);margin-bottom:16px;font-family:'IBM Plex Mono',monospace}
 .pmt-modal-prompt{font-size:.85rem;line-height:1.8;color:var(--text-sub);white-space:pre-wrap;word-break:break-word;background:var(--bg);padding:16px;border-radius:8px;border:1px solid var(--border)}
@@ -5594,6 +5594,7 @@ function openPmtModal(id){
   dim.classList.add('on');
   dim.scrollTop=0;
   document.body.style.overflow='hidden';
+  fitPmtModal(dim);
   if(needPw)setTimeout(function(){$('#pmtPwIn').focus()},200);
 }
 
@@ -5760,11 +5761,23 @@ function checkPmtPw(){
     $('#pmtPwIn').focus();
   }
 }
+function fitPmtModal(dim){
+  var modal=dim.querySelector('.pmt-modal');
+  if(!modal)return;
+  modal.style.transform='';
+  requestAnimationFrame(function(){
+    var mw=modal.offsetWidth, mh=modal.offsetHeight;
+    var vw=window.innerWidth-40, vh=window.innerHeight-40;
+    var s=Math.min(1, vw/mw, vh/mh);
+    modal.style.transform=s<1?'scale('+s+')':'';
+    modal.style.transformOrigin='center center';
+  });
+}
 function closePmtModal(){
   var dim=$('#pmtModalDim');
   dim.classList.remove('on');
   dim.scrollTop=0;
-  var modal=dim.querySelector('.pmt-modal');if(modal)modal.scrollTop=0;
+  var modal=dim.querySelector('.pmt-modal');if(modal){modal.scrollTop=0;modal.style.transform='';}
   var content=dim.querySelector('.pmt-modal-content');if(content)content.scrollTop=0;
   document.body.style.overflow='';
   pmtViewId=null;
@@ -6257,10 +6270,12 @@ function openCtDetail(tabId,itemId){
   if(isAdmin){admin.style.display='';}else{admin.style.display='none';}
 
   // 모달 열기
-  $('#ctDetailDim').classList.add('on');
+  var dim=$('#ctDetailDim');
+  dim.classList.add('on');
+  fitPmtModal(dim);
 }
 
-function closeCtDetail(){var dim=$('#ctDetailDim');dim.classList.remove('on');dim.scrollTop=0;var modal=dim.querySelector('.pmt-modal');if(modal)modal.scrollTop=0;var content=dim.querySelector('.pmt-modal-content');if(content)content.scrollTop=0;}
+function closeCtDetail(){var dim=$('#ctDetailDim');dim.classList.remove('on');dim.scrollTop=0;var modal=dim.querySelector('.pmt-modal');if(modal){modal.scrollTop=0;modal.style.transform='';}var content=dim.querySelector('.pmt-modal-content');if(content)content.scrollTop=0;}
 
 function ctSlide(dir){
   if(!ctSlideImgs.length)return;
