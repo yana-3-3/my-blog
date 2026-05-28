@@ -6330,6 +6330,7 @@ function openCtEditor(tabId,itemId){
     }
   }else{
     $('#ctEdNsfw').checked=false;
+    ctEdSelTags=[];
   }
 
   // 태그 영역
@@ -6359,7 +6360,7 @@ function rCtEdTags(tab,itemId){
   if(itemId){
     var item=getCtData(tab.id).find(function(x){return x.id===itemId;});
     ctEdSelTags=item&&item.tags?item.tags.slice():[];
-  }else if(!ctEditItemId){ctEdSelTags=[];}
+  }
   var tags=tab.tags||[];
   area.innerHTML=tags.map(function(t){
     var on=ctEdSelTags.indexOf(t.id)!==-1;
